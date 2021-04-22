@@ -75,7 +75,7 @@ class Controller():
         new_direction = self.direction
         for i in range(self.n_axes):
             axis = self.joystick.get_axis(i)
-            if i == 0:  # vertical
+            if i == 0:  # Vertical
                 if axis > 0 and abs(axis) > 0.7:  # Right
                     new_direction = pyBittle.Command.RIGHT
                     break
@@ -84,7 +84,7 @@ class Controller():
                     break
                 else:
                     new_direction = pyBittle.Command.BALANCE
-            elif i == 1:  # horizontal
+            elif i == 1:  # Horizontal
                 if axis > 0 and abs(axis) > 0.7:  # Backward
                     new_direction = pyBittle.Command.BACKWARD
                     break
@@ -110,13 +110,13 @@ class Controller():
         for i in range(self.n_hats):
             gait = None
             hat = self.joystick.get_hat(i)
-            if hat == (-1, 0):  # left
+            if hat == (-1, 0):  # Left pad
                 gait = pyBittle.Command.CRAWL
-            elif hat == (1, 0):  # right
+            elif hat == (1, 0):  # Right pad
                 gait = pyBittle.Command.TROT
-            elif hat == (0, -1):  # down
+            elif hat == (0, -1):  # Down pad
                 gait = pyBittle.Command.WALK
-            elif hat == (0, 1):  # up
+            elif hat == (0, 1):  # Up pad
                 gait = pyBittle.Command.RUN
             if gait:
                 self.gait = gait
@@ -140,7 +140,7 @@ class Controller():
         elif self.connect_bluetooth:
             self.bittle.send_command_bluetooth(command)
         print(f"Action: {command} sent")
-        time.sleep(1)  # let Bittle rest to prevent damage
+        time.sleep(1)  # Let Bittle rest to prevent damage
         return True
 
     def send_direction(self, command):
