@@ -140,7 +140,7 @@ class Controller():
         elif self.connect_bluetooth:
             self.bittle.send_command_bluetooth(command)
         print(f"Action: {command} sent")
-        time.sleep(1)  # Let Bittle rest to prevent damage
+        time.sleep(0.5)  # Let Bittle rest to prevent damage
         return True
 
     def send_direction(self, command):
@@ -174,6 +174,7 @@ if __name__ == '__main__':
                             ip_addr=ip_addr)
     if not connect_wifi and not connect_bluetooth:
         print("No connection method selected.")
+        input()
         sys.exit()
     try:
         controller.run()
@@ -183,6 +184,8 @@ if __name__ == '__main__':
             try:
                 controller.bittle.send_command_bluetooth(pyBittle.Command.REST)
                 controller.bittle.disconnect_bluetooth()
+                print("Connection Closed")
             except:
                 pass
+        input()
         sys.exit()
