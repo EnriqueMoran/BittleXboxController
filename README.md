@@ -8,10 +8,13 @@ Connect to Bittle through WiFi (Linux & Windows) or Bluetooth (Linux) and start 
 Dependencies: [pyBittle](https://github.com/EnriqueMoran/pyBittle)
 
 
+##How it works
+The controller and Bittle are connected to your computer. This tool receives the inputted data from the controller, translates it into Bittle understandable commands and sends them to it through Bluetooth or WiFi connection using pyBittle library.
+
 ## How to use
-1. Connect Xbox controller to your computer.
-2. Turn on your Bittle and connect it to your computer in case you will control it through Bluetooth.
-3. Run this script.
+1. Connect the Xbox controller to your computer.
+2. Turn on your Bittle and connect it to your computer (only in case you will control it through Bluetooth).
+3. Run this tool.
 4. Control your Bittle using the Xbox controller.
 5. To exit, press ctrl + c.
 

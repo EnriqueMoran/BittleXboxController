@@ -1,6 +1,7 @@
 """This program allow to control Bittle using Xbox controller.
 """
 
+import math
 import os
 import pyBittle
 import pygame
@@ -10,7 +11,7 @@ import time
 
 __author__ = "EnriqueMoran"
 
-__version__ = "v1.0"
+__version__ = "v1.1"
 
 
 BUTTONS_MAP = {
@@ -34,7 +35,6 @@ class Controller():
         self.n_axes = 0
         self.n_buttons = 0
         self.n_hats = 0
-        self.gait = pyBittle.Command.WALK
 
         self.bittle = None
         self.connect_wifi = connect_wifi
@@ -42,7 +42,6 @@ class Controller():
         self.ip_addr = ip_addr
         self.device_name = device_name
         self.bt_port = bt_port
-        self.gait = pyBittle.Command.WALK
         self.direction = pyBittle.Command.BALANCE
 
     def initialize(self):
@@ -73,26 +72,35 @@ class Controller():
 
     def read_inputs(self):
         new_direction = self.direction
+        x_axis_value = 0
+        y_axis_value = 0
         for i in range(self.n_axes):
-            axis = self.joystick.get_axis(i)
-            if i == 0:  # Vertical
-                if axis > 0 and abs(axis) > 0.7:  # Right
-                    new_direction = pyBittle.Command.RIGHT
-                    break
-                elif axis < 0 and abs(axis) > 0.7:  # Left
-                    new_direction = pyBittle.Command.LEFT
-                    break
-                else:
-                    new_direction = pyBittle.Command.BALANCE
-            elif i == 1:  # Horizontal
-                if axis > 0 and abs(axis) > 0.7:  # Backward
-                    new_direction = pyBittle.Command.BACKWARD
-                    break
-                elif axis < 0 and abs(axis) > 0.7:  # Forward
-                    new_direction = pyBittle.Command.FORWARD
-                    break
-                else:  # Stop
-                    new_direction = pyBittle.Command.BALANCE
+            axis_value = self.joystick.get_axis(i)
+            if i == 0:  # Horizontal
+                x_axis_value = axis_value
+            elif i == 1:  # Vertical
+                y_axis_value = -axis_value  # Set FORWARD as positive value
+
+        if abs(x_axis_value) > 0.8 or abs(y_axis_value) > 0.8:
+            angle = self.get_angle(x_axis_value, y_axis_value)
+            if angle >= 337.5 or angle < 22.5:
+                new_direction = pyBittle.Direction.FORWARD
+            elif angle >= 22.5 and angle < 67.5:
+                new_direction = pyBittle.Direction.FORWARDRIGHT
+            elif angle >= 67.5 and angle < 112.5:
+                new_direction = pyBittle.Direction.FORWARDRIGHT
+            elif angle >= 112.5 and angle < 157.5:
+                new_direction = pyBittle.Direction.BACKWARDRIGHT
+            elif angle >= 157.5 and angle < 202.5:
+                new_direction = pyBittle.Direction.BACKWARD
+            elif angle >= 202.5 and angle < 247.5:
+                new_direction = pyBittle.Direction.BACKWARDLEFT
+            elif angle >= 247.5 and angle < 292.5:
+                new_direction = pyBittle.Direction.FORWARDLEFT
+            elif angle >= 292.5 and angle < 337.5:
+                new_direction = pyBittle.Direction.FORWARDLEFT
+        elif abs(x_axis_value) < 0.2 or abs(y_axis_value) < 0.2:
+            new_direction = pyBittle.Command.BALANCE  # Stop
 
         if self.direction != new_direction:
             self.direction = new_direction
@@ -111,16 +119,17 @@ class Controller():
             gait = None
             hat = self.joystick.get_hat(i)
             if hat == (-1, 0):  # Left pad
-                gait = pyBittle.Command.CRAWL
+                gait = pyBittle.Gait.CRAWL
             elif hat == (1, 0):  # Right pad
-                gait = pyBittle.Command.TROT
+                gait = pyBittle.Gait.TROT
             elif hat == (0, -1):  # Down pad
-                gait = pyBittle.Command.WALK
+                gait = pyBittle.Gait.WALK
             elif hat == (0, 1):  # Up pad
-                gait = pyBittle.Command.RUN
+                gait = pyBittle.Gait.RUN
             if gait:
-                self.gait = gait
-                print(f"New gait selected: {self.gait}")
+                self.bittle.gait = gait
+                print(f"New gait selected: {gait}")
+                time.sleep(0.2)
 
     def run(self):
         initialized = self.initialize()
@@ -143,26 +152,54 @@ class Controller():
         time.sleep(0.5)  # Let Bittle rest to prevent damage
         return True
 
-    def send_direction(self, command):
-        direction = self.bittle._commands[self.gait] +\
-                    self.bittle._commands[command]
-        direction = 'kbk' if command == pyBittle.Command.BACKWARD \
-                    else direction
+    def send_direction(self, direction):
         if self.connect_wifi:
             if self.bittle.has_wifi_connection():
-                if command == pyBittle.Command.BALANCE:
-                    self.bittle.send_command_wifi(command)
+                if direction == pyBittle.Command.BALANCE:
+                    self.bittle.send_command_wifi(direction)
                 else:
-                    self.bittle.send_msg_wifi(direction)
+                    self.bittle.send_movement_wifi(direction)
         elif self.connect_bluetooth:
-            if command == pyBittle.Command.BALANCE:
-                self.bittle.send_command_bluetooth(command)
+            if direction == pyBittle.Command.BALANCE:
+                self.bittle.send_command_bluetooth(direction)
             else:
-                self.bittle.send_msg_bluetooth(direction)
-        print(f"Direction: {command} sent")
+                self.bittle.send_movement_bluetooth(direction)
+        print(f"Direction: {direction} sent")
         # Let Bittle rest to prevent damage, modify this under your own risk
         time.sleep(0.5)
         return True
+
+    def get_angle(self, xPercent, yPercent):
+        """Returns joystick angle.
+        """
+        angle_deg = 0
+        if xPercent > 0.9 and yPercent == 0:
+            angle_deg = 90
+        elif xPercent < -0.9 and yPercent == 0:
+            angle_deg = 270
+        elif xPercent == 0 and yPercent > 0.9:
+            angle_deg = 1
+        elif xPercent == 0 and yPercent < -0.9:
+            angle_deg = 180
+        elif (xPercent > 0 and yPercent > 0 and (xPercent > 0.2 or
+              yPercent > 0.2)):
+            angle_rad = math.atan2(xPercent, yPercent)
+            angle_deg = angle_rad * 180 / math.pi
+        elif (xPercent > 0 and yPercent < 0 and (xPercent > 0.2 or
+              yPercent < -0.2)):
+            angle_rad = math.atan2(xPercent, yPercent)
+            angle_deg = angle_rad * 180 / math.pi
+        elif (xPercent < 0 and yPercent < 0 and (xPercent < -0.2 or
+              yPercent < -0.2)):
+            angle_rad = math.atan2(xPercent, yPercent)
+            angle_deg = angle_rad * 180 / math.pi
+            angle_deg += 360
+        elif (xPercent < 0 and yPercent > 0 and (xPercent < -0.2 or
+              yPercent > 0.2)):
+            angle_rad = math.atan2(xPercent, yPercent)
+            angle_deg = angle_rad * 180 / math.pi
+            angle_deg += 360
+        return angle_deg
 
 
 if __name__ == '__main__':
