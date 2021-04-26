@@ -211,7 +211,7 @@ if __name__ == '__main__':
                             ip_addr=ip_addr)
     if not connect_wifi and not connect_bluetooth:
         print("No connection method selected.")
-        input()
+        input("Press any key to exit.")
         sys.exit()
     try:
         controller.run()
@@ -224,5 +224,5 @@ if __name__ == '__main__':
                 print("Connection Closed")
             except:
                 pass
-        input()
+        input("Press any key to exit.")
         sys.exit()
