@@ -8,7 +8,7 @@ Connect to Bittle through WiFi (Linux & Windows) or Bluetooth (Linux) and start 
 Dependencies: [pyBittle](https://github.com/EnriqueMoran/pyBittle)
 
 
-##How it works
+## How it works
 The controller and Bittle are connected to your computer. This tool receives the inputted data from the controller, translates it into Bittle understandable commands and sends them to it through Bluetooth or WiFi connection using pyBittle library.
 
 ## How to use
@@ -35,3 +35,4 @@ The controller and Bittle are connected to your computer. This tool receives the
 ## Known issues
 * Gyro command not working.
 * Sometimes command is not recognized, to fix this, send another one (e.g, BALANCE).
+* Sometimes direction input will be detected wrongly (e.g, after sending BACKWARD LEFT, LEFT will be sent immediately afterward).
