@@ -11,7 +11,7 @@ import time
 
 __author__ = "EnriqueMoran"
 
-__version__ = "v1.1"
+__version__ = "v1.2"
 
 
 BUTTONS_MAP = {
@@ -26,9 +26,9 @@ BUTTONS_MAP = {
 
 class Controller():
 
-    def __init__(self, window_size=(1, 1),
-                 connect_wifi=False, connect_bluetooth=False,
-                 ip_addr=None, device_name=None, bt_port=None):
+    def __init__(self, window_size=(1, 1), connect_wifi=False,
+                 connect_bluetooth=False, connect_serial=False, ip_addr=None,
+                 device_name=None, bt_port=None, object_avoidance=False):
         self.window_size = window_size
         self.window = None
         self.joystick = None
@@ -39,25 +39,36 @@ class Controller():
         self.bittle = None
         self.connect_wifi = connect_wifi
         self.connect_bluetooth = connect_bluetooth
+        self.connect_serial = connect_serial
         self.ip_addr = ip_addr
         self.device_name = device_name
         self.bt_port = bt_port
         self.direction = pyBittle.Command.BALANCE
 
     def initialize(self):
+        pygame.init()
         os.environ["DISPLAY"] = ":0"
         os.environ["SDL_VIDEODRIVER"] = "dummy"  # Hide window
         controller_found = False
         self.window = pygame.display.set_mode(self.window_size)
         pygame.display.set_caption("Bittle controller")
-        pygame.init()
         pygame.time.Clock().tick(30)
 
         self.bittle = pyBittle.Bittle()
         if self.connect_wifi:
             self.bittle.wifiManager.ip = self.ip_addr
         elif self.connect_bluetooth:
-            self.bittle.connect_bluetooth()
+            connected = self.bittle.connect_bluetooth()
+            if connected:
+                print("Connected to Bittle through Bluetooth")
+            else:
+                print("Couldn't connect to Bittle!")
+        elif self.connect_serial:
+            connected = self.bittle.connect_serial()
+            if connected:
+                print("Connected to Bittle through Serial")
+            else:
+                print("Couldn't connect to Bittle!")
         try:
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
@@ -148,6 +159,8 @@ class Controller():
                 self.bittle.send_command_wifi(command)
         elif self.connect_bluetooth:
             self.bittle.send_command_bluetooth(command)
+        elif self.connect_serial:
+            self.bittle.send_command_serial(command)
         print(f"Action: {command} sent")
         time.sleep(0.5)  # Let Bittle rest to prevent damage
         return True
@@ -164,6 +177,11 @@ class Controller():
                 self.bittle.send_command_bluetooth(direction)
             else:
                 self.bittle.send_movement_bluetooth(direction)
+        elif self.connect_serial:
+            if direction == pyBittle.Command.BALANCE:
+                self.bittle.send_command_serial(direction)
+            else:
+                self.bittle.send_movement_serial(direction)
         print(f"Direction: {direction} sent")
         # Let Bittle rest to prevent damage, modify this under your own risk
         time.sleep(0.5)
@@ -205,11 +223,14 @@ class Controller():
 if __name__ == '__main__':
     connect_wifi = False  # Set to True to connect through WiFi
     connect_bluetooth = False  # Set to True to connect through Bluetooth
-    ip_addr = '192.168.1.138'  # Here goes your Bittle's IP address
+    connect_serial = False  # Set to True to connect through Serial
+
+    ip_addr = '192.168.1.138'  # Here goes your Bittle's IP address (for WiFi)
     controller = Controller(connect_wifi=connect_wifi,
                             connect_bluetooth=connect_bluetooth,
+                            connect_serial=connect_serial,
                             ip_addr=ip_addr)
-    if not connect_wifi and not connect_bluetooth:
+    if not connect_wifi and not connect_bluetooth and not connect_serial:
         print("No connection method selected.")
         input("Press any key to exit.")
         sys.exit()
@@ -224,5 +245,12 @@ if __name__ == '__main__':
                 print("Connection Closed")
             except:
                 pass
+        elif controller.connect_serial:
+            try:
+                controller.bittle.send_command_serial(pyBittle.Command.REST)
+                controller.bittle.disconnect_serial()
+            except:
+                pass
+
         input("Press any key to exit.")
         sys.exit()
